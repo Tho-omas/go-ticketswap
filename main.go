@@ -12,6 +12,8 @@ import (
 
 	"path"
 
+	"sort"
+
 	"golang.org/x/net/html"
 )
 
@@ -31,8 +33,10 @@ func main() {
 	// xml := string(bytes)
 
 	// 2. parse html
-	parseHtml(response.Body)
 	defer response.Body.Close()
+	tickets := parseHtml(response.Body)
+	sort.Sort(tickets)
+	fmt.Println(tickets)
 }
 
 type Ticket struct {
@@ -47,6 +51,12 @@ type Ticket struct {
 func (t *Ticket) String() string {
 	return fmt.Sprintf("%s, %d x %.2f %s by %s, %s", t.Title, t.Qty, t.Price, t.Currency, t.User, t.Url.String())
 }
+
+type Tickets []Ticket
+
+func (a Tickets) Len() int           { return len(a) }
+func (a Tickets) Less(i, j int) bool { return a[i].Price < a[j].Price }
+func (a Tickets) Swap(i, j int)      { a[i], a[j] = a[j], a[i] }
 
 const (
 	baseUrl     = "https://www.ticketswap.com/"
@@ -74,9 +84,9 @@ const (
 	ticketPriceAttrClassVal  = "ad-list-price"
 )
 
-func parseHtml(r io.Reader) []Ticket {
+func parseHtml(r io.Reader) Tickets {
 	tokenizer := html.NewTokenizer(r)
-	var tickets []Ticket
+	var tickets Tickets
 	var t *Ticket
 	isAvailable := false
 	for {
@@ -128,7 +138,6 @@ func parseHtml(r io.Reader) []Ticket {
 		case html.EndTagToken:
 			if token.Data == tagArticle && isAvailable && t != nil {
 				tickets = append(tickets, *t)
-				fmt.Println(t.String())
 				t = nil
 			}
 		}
