@@ -1,10 +1,13 @@
 package ticketswap
 
 import (
+	"bytes"
 	"io"
 	"net/url"
 	"path"
 	"strconv"
+
+	"fmt"
 
 	"golang.org/x/net/html"
 )
@@ -32,11 +35,22 @@ type Advertisement struct {
 	Url      url.URL
 }
 
+func (a Advertisement) String() (res string) {
+	return fmt.Sprintf("%d x %.2f %s by %s %s", a.Qty, a.Price, a.Currency, a.User, a.Url.String())
+}
+
 type Advertisements []Advertisement
 
 func (a Advertisements) Len() int           { return len(a) }
 func (a Advertisements) Less(i, j int) bool { return a[i].Price < a[j].Price }
 func (a Advertisements) Swap(i, j int)      { a[i], a[j] = a[j], a[i] }
+func (a Advertisements) String() string {
+	var buffer bytes.Buffer
+	for _, ad := range a {
+		buffer.WriteString(ad.String())
+	}
+	return buffer.String()
+}
 
 func NewAdvertisements(r io.Reader) Advertisements {
 	tokenizer := html.NewTokenizer(r)
