@@ -48,6 +48,7 @@ func (a Advertisements) String() string {
 	var buffer bytes.Buffer
 	for _, ad := range a {
 		buffer.WriteString(ad.String())
+		buffer.WriteString("\n")
 	}
 	return buffer.String()
 }
