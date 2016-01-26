@@ -26,6 +26,7 @@ const (
 	adPriceAttrClassVal  = "ad-list-price"
 )
 
+// Advertisement defines the properties of an advertisement from the ticketswap.com.
 type Advertisement struct {
 	Title    string
 	Qty      uint8
@@ -35,15 +36,25 @@ type Advertisement struct {
 	Url      url.URL
 }
 
+// String is part of fmt.Stringer.
 func (a Advertisement) String() (res string) {
 	return fmt.Sprintf("%d x %.2f %s by %s %s", a.Qty, a.Price, a.Currency, a.User, a.Url.String())
 }
 
+// Advertisements defines a slice of advertisements.
 type Advertisements []Advertisement
 
-func (a Advertisements) Len() int           { return len(a) }
+// Len is part of sort.Interface.
+func (a Advertisements) Len() int { return len(a) }
+
+// Less is part of sort.Interface. It is implemented by comparing the ads prices.
 func (a Advertisements) Less(i, j int) bool { return a[i].Price < a[j].Price }
-func (a Advertisements) Swap(i, j int)      { a[i], a[j] = a[j], a[i] }
+
+// Swap is part of sort.Interface.
+func (a Advertisements) Swap(i, j int) { a[i], a[j] = a[j], a[i] }
+
+// String is part of fmt.Stringer.
+// Returns the string representation of the Advertisements instance.
 func (a Advertisements) String() string {
 	var buffer bytes.Buffer
 	for _, ad := range a {
@@ -53,7 +64,9 @@ func (a Advertisements) String() string {
 	return buffer.String()
 }
 
-func NewAdvertisements(r io.Reader) Advertisements {
+// NewAdvertisements does try to build an ads slice from the html.
+// Returns an error if it fails to parse ads from the input reader.
+func NewAdvertisements(r io.Reader) (Advertisements, error) {
 	tokenizer := html.NewTokenizer(r)
 	var ads Advertisements
 	var ad *Advertisement
@@ -64,7 +77,7 @@ func NewAdvertisements(r io.Reader) Advertisements {
 		switch tokenType {
 		case html.ErrorToken:
 			// End of the document, we're done
-			return ads
+			return ads, nil
 		case html.StartTagToken:
 			if token.Data == tagSection && hasAttr(token.Attr, &html.Attribute{Key: attrClass, Val: adsAttrClassVal}) {
 				// found some ads, check for availability
@@ -78,8 +91,14 @@ func NewAdvertisements(r io.Reader) Advertisements {
 			} else if token.Data == tagArticle && hasAttr(token.Attr, &html.Attribute{Key: attrProp, Val: adTicketAttrPropVal}) {
 				ad = &Advertisement{}
 			} else if token.Data == tagA && hasAttr(token.Attr, &html.Attribute{Key: attrProp, Val: adUrlAttrPropVal}) {
-				urlPath, _ := getVal(token.Attr, attrHref)
-				url, _ := url.Parse(path.Join(path.Base(baseUrl), urlPath))
+				urlPath, err := getVal(token.Attr, attrHref)
+				if err != nil {
+					return nil, err
+				}
+				url, err := url.Parse(path.Join(path.Base(baseUrl), urlPath))
+				if err != nil {
+					return nil, err
+				}
 				ad.Url = *url
 			} else if token.Data == tagDiv && hasAttr(token.Attr, &html.Attribute{Key: attrClass, Val: adTitleAttrClassVal}) {
 				tokenizer.Next()
@@ -92,12 +111,24 @@ func NewAdvertisements(r io.Reader) Advertisements {
 			if !isAvailable {
 				continue
 			} else if token.Data == tagMeta && hasAttr(token.Attr, &html.Attribute{Key: attrProp, Val: adUrlPricePropVal}) {
-				priceStr, _ := getVal(token.Attr, attrContent)
-				price, _ := strconv.ParseFloat(priceStr, 64)
+				priceStr, err := getVal(token.Attr, attrContent)
+				if err != nil {
+					return nil, err
+				}
+				price, err := strconv.ParseFloat(priceStr, 64)
+				if err != nil {
+					return nil, err
+				}
 				ad.Price = price
 			} else if token.Data == tagMeta && hasAttr(token.Attr, &html.Attribute{Key: attrProp, Val: adUrlQuantityPropVal}) {
-				qtyStr, _ := getVal(token.Attr, attrContent)
-				qty, _ := strconv.ParseUint(qtyStr, 10, 8)
+				qtyStr, err := getVal(token.Attr, attrContent)
+				if err != nil {
+					return nil, err
+				}
+				qty, err := strconv.ParseUint(qtyStr, 10, 8)
+				if err != nil {
+					return nil, err
+				}
 				ad.Qty = uint8(qty)
 			} else if token.Data == tagMeta && hasAttr(token.Attr, &html.Attribute{Key: attrProp, Val: adUrlCurrencyPropVal}) {
 				currencyStr, _ := getVal(token.Attr, attrContent)
@@ -110,5 +141,5 @@ func NewAdvertisements(r io.Reader) Advertisements {
 			}
 		}
 	}
-	return ads
+	return ads, nil
 }
