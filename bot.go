@@ -13,8 +13,8 @@ var aboutText = fmt.Sprint(`They call me the Ticketbot, I can help you find tick
 
 You can control me by sending these commands:
 /help - get the help info
-/startwatch - start the ads monitoring
-/stopwatch - stop the ads monitoring`)
+/startwatch <ads_url> - start the ads monitoring. For example: /startwatch https://www.ticketswap.com/event/rihanna/c1671553-db2b-4f0f-b9c1-51a70e6b48e0
+/stopwatch <ads_url> - stop the ads monitoring`)
 
 // Bot represents a separate ticketswap bot instance.
 type Bot struct {
