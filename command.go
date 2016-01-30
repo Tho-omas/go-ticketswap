@@ -14,10 +14,11 @@ const (
 	tCmdHelp CommandType = iota
 	tCmdStartWatch
 	tCmdStopWatch
+	tCmdList
 )
 
 // the map of supported commands
-var supportedCommands = map[string]CommandType{"/help": tCmdHelp, "/startwatch": tCmdStartWatch, "/stopwatch": tCmdStopWatch}
+var supportedCommands = map[string]CommandType{"/help": tCmdHelp, "/startwatch": tCmdStartWatch, "/stopwatch": tCmdStopWatch, "/list": tCmdList}
 
 // Command defines a command that is supported by the Bot.
 type Command struct {

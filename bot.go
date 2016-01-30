@@ -6,6 +6,8 @@ import (
 
 	"time"
 
+	"strings"
+
 	"github.com/tucnak/telebot"
 )
 
@@ -13,8 +15,9 @@ var aboutText = fmt.Sprint(`They call me the Ticketbot, I can help you find tick
 
 You can control me by sending these commands:
 /help - get the help info
-/startwatch <ads_url> - start the ads monitoring. For example: /startwatch https://www.ticketswap.com/event/rihanna/c1671553-db2b-4f0f-b9c1-51a70e6b48e0
-/stopwatch <ads_url> - stop the ads monitoring`)
+/startwatch <ads_url> - start to observe the ads. For example: /startwatch https://www.ticketswap.com/event/rihanna/floor/c1671553-db2b-4f0f-b9c1-51a70e6b48e0/4857
+/stopwatch <ads_url> - stop to observe the ads
+/list - print ads that are observed this time.`)
 
 // Bot represents a separate ticketswap bot instance.
 type Bot struct {
@@ -68,21 +71,35 @@ func (bot *Bot) Start(timeout time.Duration) {
 			}(task.AdsCh, bot, message.Chat)
 			task.Start(timeout)
 			bot.telebot.SendMessage(message.Chat, fmt.Sprint(
-				"Started the ads monitoring! Will notify you when the ticket appears. Use /stopwatch command to stop me."), nil)
+				"Started the ads observing! Will notify you when the ticket appears. Use /stopwatch command to stop me."), nil)
 			fmt.Printf("started the ads monitoring %s\n", task.URL)
 		case tCmdStopWatch:
 			taskID := message.Chat.Destination() + cmd.Argv[0]
 			task, ok := bot.tasks[taskID]
 			if !ok {
-				bot.telebot.SendMessage(message.Chat, fmt.Sprint("I don't monitor the ads for this url! Use /startwatch command to start monitoring."), nil)
+				bot.telebot.SendMessage(message.Chat, fmt.Sprint("I don't monitor the ads for this url! Use /startwatch command to start observing the ads."), nil)
 				continue
 			}
 
 			task.Stop()
 			delete(bot.tasks, taskID)
 			bot.telebot.SendMessage(message.Chat, fmt.Sprint(
-				"Stopped the ads monitoring! Use /startwatch command to start monitoring again."), nil)
+				"Stopped the ads observing! Use /startwatch command to start observing again."), nil)
 			fmt.Printf("stopped the ads monitoring %s\n", task.URL)
+		case tCmdList:
+			chatID := message.Chat.Destination()
+			var tasks []string
+			for id, task := range bot.tasks {
+				if strings.HasPrefix(id, chatID) {
+					tasks = append(tasks, task.URL)
+				}
+			}
+			if len(tasks) == 0 {
+				bot.telebot.SendMessage(message.Chat, fmt.Sprint(
+					"No ads found! Use /startwatch command to start observing the ads."), nil)
+			} else {
+				bot.telebot.SendMessage(message.Chat, strings.Join(tasks, "\n"), &telebot.SendOptions{DisableWebPagePreview: true})
+			}
 		}
 	}
 }
