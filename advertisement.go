@@ -6,6 +6,7 @@ import (
 	"net/url"
 	"path"
 	"strconv"
+	"strings"
 
 	"fmt"
 
@@ -13,8 +14,8 @@ import (
 )
 
 const (
-	adsAttrClassVal = "ad-list"
-	availableData   = "Available"
+	adsAttrClassVal = "listings"
+	availableData   = "available"
 
 	adTicketAttrPropVal  = "tickets"
 	adUrlAttrPropVal     = "offerurl"
@@ -22,8 +23,8 @@ const (
 	adUrlPricePropVal    = "price"
 	adUrlCurrencyPropVal = "currency"
 	adUserAttrClassVal   = "name"
-	adTitleAttrClassVal  = "ad-list-title"
-	adPriceAttrClassVal  = "ad-list-price"
+	adTitleAttrClassVal  = "listings-item--title"
+	adPriceAttrClassVal  = "listings-item--price"
 )
 
 // Advertisement defines the properties of an advertisement from the ticketswap.com.
@@ -84,7 +85,7 @@ func NewAdvertisements(r io.Reader) (Advertisements, error) {
 				tokenizer.Next()
 				tokenizer.Next()
 				tokenizer.Next()
-				isAvailable = tokenizer.Token().Data == availableData
+				isAvailable = strings.Contains(strings.ToLower(tokenizer.Token().Data), availableData)
 			}
 			if !isAvailable {
 				continue
